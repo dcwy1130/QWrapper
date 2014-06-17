@@ -37,15 +37,9 @@ import com.travelco.rdf.infocenter.InfoCenter;
  * 单程
  */
 public class Wrapper_gjdairxq001 implements QunarCrawler {
-	public static NameValuePair TRIPTYPE = new NameValuePair("TRIPTYPE","O");		
-	// new NameValuePair("DEPPORT","LNZ");
-	// new NameValuePair("ARRPORT","AYT");
+	public static NameValuePair TRIPTYPE = new NameValuePair("TRIPTYPE","O");
 	public static NameValuePair RETDEPPORT = new NameValuePair("RETDEPPORT","");
 	public static NameValuePair RETARRPORT = new NameValuePair("RETARRPORT","");
-	//new NameValuePair("from","28%2F06%2F2014");
-	//new NameValuePair("DEPDATE","28%2F06%2F2014");
-	//new NameValuePair("to","28%2F06%2F2014");
-	//new NameValuePair("RETDATE","28%2F06%2F2014");
 	public static final NameValuePair ADULT = new NameValuePair("ADULT","1");
 	public static final NameValuePair CHILD = new NameValuePair("CHILD","0");
 	public static final NameValuePair INFANT = new NameValuePair("INFANT","0");
@@ -55,27 +49,6 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 	
 	private static Cookie[] cookies;
 
-	public static void main(String[] args) throws Exception {
-		FlightSearchParam fsp = new FlightSearchParam();
-		fsp.setDep("ARN");
-		fsp.setArr("ADA");
-		fsp.setDepDate("2014-07-27");
-		Wrapper_gjdairxq001 wg = new Wrapper_gjdairxq001();
-		String html = wg.getHtml(fsp);
-		//System.out.println(html);
-		wg.process(html, fsp);
-		System.out.println(wg.process(html, fsp).getData());
-		
-		//System.out.println("JS="+getTotalAmount());
-		//System.out.println(html);
-		//String s = getFlightDetail("15");
-		//将JsonObject数据转换为Json
-		//JSONObject obj = JSON.parseObject(s);
-		//利用键值对的方式获取到值
-		//obj.getDoubleValue("totalAmount")-obj.getDoubleValue("totalDepAdultFare")
-		//System.out.println("JSON:"+obj);
-			
-	}
 	@Override
 	public BookingResult getBookingInfo(FlightSearchParam arg0) {
 		String bookingUrlPre = "https://sun.sunexpress.com.tr/web/RezvEntry.xhtml";
@@ -255,12 +228,13 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 		FlightDetail flightDetail = new FlightDetail();		
 		List<String> flightNoList = new ArrayList<String>();
 		
-		
-		
 		String input = StringUtils.substringBetween(table, "<input",">");//得到input radio发送post请求的参数值
 		String requestParam = StringUtils.substringBetween(input, "(", ")");
 		String JSONStr = getFlightDetail(requestParam);
 		JSONObject obj = JSON.parseObject(JSONStr);
+		//schArrDate  11/08/2014 - 16:25
+		String[] arrDates = obj.getString("schArrDate").replaceAll(" ", "").split("-")[0].split("/");
+		String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
 		
 		if(flag){//需要中转
 			String[] flightNos = (obj.getString("operatingCarrier")+obj.getString("operatingFlightNo")).split("/");
@@ -278,16 +252,17 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 			flightDetail.setTax(obj.getDoubleValue("totalTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
 			//两个tr，包含两上行程列表
 			String[] tr = StringUtils.substringBetween(table, "<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">", "</tbody>").split("<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">");
-			for(int i=0; i<flightNos.length; i++){
-				
+			
+			for(int i=0; i<flightNos.length; i++){				
 				FlightSegement seg = new FlightSegement();
 				String[] times = StringUtils.substringBetween(tr[i], "<td>", "</td>").replaceAll(" ", "").split("-");
 				seg.setDeptime(times[0]);
 				seg.setDepairport(StringUtils.substringBetween(tr[i], "(", ")").replaceAll(" ", ""));
 				seg.setArrtime(times[1]);				
 				seg.setArrairport(StringUtils.substringBetween(StringUtils.substringBetween(tr[i], ")", "<br>"), "(", ")").replaceAll(" ", ""));			
-				seg.setFlightno(flightNos[i]);
+				seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", "").replaceAll("\n", ""));
 				seg.setDepDate(depDate);
+				seg.setArrDate(arrDate);
 				segs.add(seg);
 			}
 			
@@ -313,6 +288,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 			seg.setArrairport(obj.getString("arrPort"));
 			seg.setDepDate(depDate);
 			seg.setFlightno(obj.getString("operatingCarrier")+obj.getString("operatingFlightNo"));
+			seg.setArrDate(arrDate);			
 			segs.add(seg);			
 			flight.setDetail(flightDetail);
 			flight.setInfo(segs);			
