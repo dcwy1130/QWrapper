@@ -42,18 +42,7 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 	public static final NameValuePair LANGUAGE = new NameValuePair("LANGUAGE","EN");
 	
 	private static Cookie[] cookies;
-
-	public static void main(String[] args) throws Exception {
-		FlightSearchParam fsp = new FlightSearchParam();
-		fsp.setDep("FRA");
-		fsp.setArr("SAW");
-		fsp.setDepDate("2014-08-26");
-		fsp.setRetDate("2014-09-06");
-		Wrapper_gjsairxq001 wg = new Wrapper_gjsairxq001();
-		String html = wg.getHtml(fsp);
-		System.out.println(wg.process(html, fsp).getStatus());
-		System.out.println(wg.getBookingInfo(fsp).getData().getInputs());
-	}
+	
 	@Override
 	public BookingResult getBookingInfo(FlightSearchParam arg0) {
 		String bookingUrlPre = "https://sun.sunexpress.com.tr/web/RezvEntry.xhtml";
@@ -306,8 +295,11 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 					seg.setDepairport(StringUtils.substringBetween(tr[i], "(", ")").replaceAll(" ", ""));
 					seg.setArrtime(times[1]);				
 					seg.setArrairport(StringUtils.substringBetween(StringUtils.substringBetween(tr[i], ")", "<br>"), "(", ")").replaceAll(" ", ""));			
-					seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", ""));
+					seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", "").replaceAll("\n", ""));
 					seg.setDepDate(depDate);
+					String[] arrDates = obj.getString("schArrDate").replaceAll(" ", "").split("-")[0].split("/");
+					String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
+					seg.setArrDate(arrDate);
 					segs.add(seg);
 				}
 				
@@ -330,8 +322,11 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 					seg.setDepairport(StringUtils.substringBetween(tr[i], "(", ")").replaceAll(" ", ""));
 					seg.setArrtime(times[1]);				
 					seg.setArrairport(StringUtils.substringBetween(StringUtils.substringBetween(tr[i], ")", "<br>"), "(", ")").replaceAll(" ", ""));			
-					seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", ""));
+					seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", "").replaceAll("\n", ""));
 					seg.setDepDate(depDate);
+					String[] arrDates = obj.getString("retSchArrDate").replaceAll(" ", "").split("-")[0].split("/");
+					String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
+					seg.setArrDate(arrDate);
 					segs.add(seg);
 				}
 			}			
@@ -343,7 +338,7 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 			flight.setDetail(flightDetail);
 			flight.setInfo(segs);						
 		}else{//不需要中转
-			FlightSegement seg = new FlightSegement();			
+			FlightSegement seg = new FlightSegement();
 			if(operationParam.equals("selectDepFlight")){//去程
 				flightNoList.add(obj.getString("operatingCarrier")+obj.getString("operatingFlightNo"));
 				flightDetail.setArrcity(obj.getString("arrPort"));
@@ -356,6 +351,9 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				seg.setArrtime(StringUtils.substringAfter(obj.getString("schArrDate"), "-").replace(" ", ""));
 				seg.setArrairport(obj.getString("arrPort"));
 				seg.setDepDate(depDate);
+				String[] arrDates = obj.getString("schArrDate").replaceAll(" ", "").split("-")[0].split("/");
+				String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
+				seg.setArrDate(arrDate);
 				seg.setFlightno(obj.getString("operatingCarrier")+obj.getString("operatingFlightNo"));
 				segs.add(seg);			
 				
@@ -371,6 +369,9 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				seg.setArrtime(StringUtils.substringAfter(obj.getString("retSchArrDate"), "-").replace(" ", ""));
 				seg.setArrairport(obj.getString("retDepPort"));
 				seg.setDepDate(depDate);
+				String[] arrDates = obj.getString("retSchArrDate").replaceAll(" ", "").split("-")[0].split("/");
+				String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
+				seg.setArrDate(arrDate);
 				seg.setFlightno(obj.getString("retOperatingCarrier")+obj.getString("retOperatingFlightNo"));
 				segs.add(seg);
 			}			
