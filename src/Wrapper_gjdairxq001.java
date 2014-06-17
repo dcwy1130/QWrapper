@@ -263,7 +263,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 		JSONObject obj = JSON.parseObject(JSONStr);
 		
 		if(flag){//需要中转
-			String[] flightNos = (obj.getString("operatingCarrier")+obj.getString("operatingFlightNo")).replaceAll("\n", "").split("/");
+			String[] flightNos = (obj.getString("operatingCarrier")+obj.getString("operatingFlightNo")).split("/");
 			//String[] flightNos = StringUtils.substringBetween(table, "<td width=\"60\">", "</td>").replaceAll(" ", "").split("/");
 			for(int i=0; i<flightNos.length; i++){
 				flightNoList.add(flightNos[i]);
@@ -286,7 +286,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 				seg.setDepairport(StringUtils.substringBetween(tr[i], "(", ")").replaceAll(" ", ""));
 				seg.setArrtime(times[1]);				
 				seg.setArrairport(StringUtils.substringBetween(StringUtils.substringBetween(tr[i], ")", "<br>"), "(", ")").replaceAll(" ", ""));			
-				seg.setFlightno(StringUtils.substringBetween(tr[i], "<br>", "</td>").replaceAll("&#9;", "").replaceAll(" ", ""));
+				seg.setFlightno(flightNos[i]);
 				seg.setDepDate(depDate);
 				segs.add(seg);
 			}
