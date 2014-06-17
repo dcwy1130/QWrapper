@@ -263,7 +263,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 		JSONObject obj = JSON.parseObject(JSONStr);
 		
 		if(flag){//需要中转
-			String[] flightNos = (obj.getString("operatingCarrier")+obj.getString("operatingFlightNo")).split("/");
+			String[] flightNos = (obj.getString("operatingCarrier")+obj.getString("operatingFlightNo")).replaceAll("\n", "").split("/");
 			//String[] flightNos = StringUtils.substringBetween(table, "<td width=\"60\">", "</td>").replaceAll(" ", "").split("/");
 			for(int i=0; i<flightNos.length; i++){
 				flightNoList.add(flightNos[i]);
