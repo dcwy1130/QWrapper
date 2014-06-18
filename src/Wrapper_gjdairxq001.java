@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -166,7 +167,14 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 			String date = arg1.getDepDate();
 			String[] dates = date.split("-");
 			String start = dates[2] + "/" + dates[1] + "/" + dates[0].substring(dates[0].length()-2,dates[0].length());
-			String tables = StringUtils.substringBetween(html, start,"/14</td>");
+			//String tables = StringUtils.substringBetween(html, start,"/14</td>");
+			String tables;
+			if(StringUtils.substringAfter(html, start).contains("<table cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"day-listing\">")){
+				tables = StringUtils.substringBetween(html, start,"/14</td>");//返程数据				
+			}else{
+				tables = StringUtils.substringBetween(html, start,"All Your Flight Details");
+			}			
+			
 			int count = StringUtils.countMatches(tables, "</table>");//得到行程列表个数
 			if(count == 1){//单个行程
 				//是否需要中转
@@ -249,7 +257,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 			flightDetail.setFlightno(flightNoList);
 			flightDetail.setMonetaryunit(obj.getString("showCurrency"));
 			flightDetail.setPrice(obj.getDoubleValue("totalDepAdultFare"));
-			flightDetail.setTax(obj.getDoubleValue("totalTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
+			flightDetail.setTax(sum(obj.getDoubleValue("totalTax"),obj.getDoubleValue("totalServiceFee"),obj.getDoubleValue("totalDepSurcharge")));
 			//两个tr，包含两上行程列表
 			String[] tr = StringUtils.substringBetween(table, "<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">", "</tbody>").split("<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">");
 			
@@ -277,7 +285,7 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 			flightDetail.setFlightno(flightNoList);
 			flightDetail.setMonetaryunit(obj.getString("showCurrency"));
 			flightDetail.setPrice(obj.getDoubleValue("totalDepAdultFare"));
-			flightDetail.setTax(obj.getDoubleValue("totalTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
+			flightDetail.setTax(sum(obj.getDoubleValue("totalTax"),obj.getDoubleValue("totalServiceFee"),obj.getDoubleValue("totalDepSurcharge")));
 			
 			FlightSegement seg = new FlightSegement();
 			//截取时间10:21-16:15
@@ -295,6 +303,13 @@ public class Wrapper_gjdairxq001 implements QunarCrawler {
 		}
 		
 		return flight;
+	}
+	//计算相加，避免丢失精度
+	private double sum(double d1,double d2,double d3){
+		BigDecimal bd1 = new BigDecimal(Double.toString(d1));
+        BigDecimal bd2 = new BigDecimal(Double.toString(d2));
+        BigDecimal bd3 = new BigDecimal(Double.toString(d3));
+        return bd1.add(bd2).add(bd3).doubleValue(); 
 	}
 
 }
