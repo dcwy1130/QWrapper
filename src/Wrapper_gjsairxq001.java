@@ -1,3 +1,4 @@
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,7 +43,7 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 	public static final NameValuePair LANGUAGE = new NameValuePair("LANGUAGE","EN");
 	
 	private static Cookie[] cookies;
-	
+
 	@Override
 	public BookingResult getBookingInfo(FlightSearchParam arg0) {
 		String bookingUrlPre = "https://sun.sunexpress.com.tr/web/RezvEntry.xhtml";
@@ -165,12 +166,18 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 			String[] depDates = depDate.split("-");
 			String start = depDates[2] + "/" + depDates[1] + "/" + depDates[0].substring(depDates[0].length()-2,depDates[0].length());
 			String depTables = StringUtils.substringBetween(html, start,"/14</td>");//去程数据
-			
 			//截取返程日期，拼装成"27/07/14"格式
 			String retDate = arg1.getRetDate();
-			String[] retDdates = retDate.split("-");
-			String end = retDdates[2] + "/" + retDdates[1] + "/" + retDdates[0].substring(retDdates[0].length()-2,retDdates[0].length());
-			String retTables = StringUtils.substringBetween(html, end,"/14</td>");//返程数据
+			String[] retDates = retDate.split("-");
+			String end = retDates[2] + "/" + retDates[1] + "/" + retDates[0].substring(retDates[0].length()-2,retDates[0].length());
+			
+			String retTables;//返程航班列表
+			//当当前日期后无其他日期航班，则以“All Your Flight Details”为结束截取否则以/14</td>
+			if(StringUtils.substringAfter(html, end).contains("<table cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"day-listing\">")){
+				retTables = StringUtils.substringBetween(html, end,"/14</td>");//返程数据				
+			}else{
+				retTables = StringUtils.substringBetween(html, end,"All Your Flight Details");
+			}
 			
 			int depCount = StringUtils.countMatches(depTables, "</table>");//得到去程列表个数
 			int retCount = StringUtils.countMatches(retTables, "</table>");//得到返程列表个数
@@ -220,9 +227,11 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 					round.setOutboundPrice(obfl.getDetail().getPrice());//去程价格
 					round.setReturnedPrice(rtfl.getDetail().getPrice());//返程价格
 					FlightDetail detail = new FlightDetail();
-					detail = obfl.getDetail();					
-					detail.setPrice(obfl.getDetail().getPrice()+rtfl.getDetail().getPrice());//往返总价格
-					detail.setTax(obfl.getDetail().getTax()+rtfl.getDetail().getTax());//往返总税费
+					detail = obfl.getDetail();
+					detail.setPrice(sum(obfl.getDetail().getPrice(),rtfl.getDetail().getPrice()));//往返总价格
+					//detail.setPrice(obfl.getDetail().getPrice()+rtfl.getDetail().getPrice());//往返总价格
+					//detail.setTax(obfl.getDetail().getTax()+rtfl.getDetail().getTax());//往返总税费
+					detail.setTax(sum(obfl.getDetail().getTax(),rtfl.getDetail().getTax()));
 					round.setDetail(detail);				//将设置后的去程信息装入往返中
 					round.setRetdepdate(rtfl.getDetail().getDepdate());//返程日期
 					round.setRetflightno(rtfl.getDetail().getFlightno());//返程航班号list
@@ -284,7 +293,7 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				flightDetail.setArrcity(obj.getString("arrPort"));
 				flightDetail.setDepcity(obj.getString("depPort"));
 				flightDetail.setPrice(obj.getDoubleValue("totalDepAdultFare"));
-				flightDetail.setTax(obj.getDoubleValue("totalDepTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
+				flightDetail.setTax(sum(obj.getDoubleValue("totalDepTax"),obj.getDoubleValue("totalServiceFee"),obj.getDoubleValue("totalDepSurcharge")));
 				
 				//两个tr，包含两上行程列表
 				String[] tr = StringUtils.substringBetween(table, "<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">", "</tbody>").split("<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">");
@@ -311,7 +320,7 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				flightDetail.setArrcity(obj.getString("retArrPort"));
 				flightDetail.setDepcity(obj.getString("retDepPort"));
 				flightDetail.setPrice(obj.getDoubleValue("totalArrAdultFare"));
-				flightDetail.setTax(obj.getDoubleValue("totalArrTax")+obj.getDoubleValue("totalServiceFee")/2+obj.getDoubleValue("totalArrSurcharge"));//返回时，服务费算了往返的，所以此次除2
+				flightDetail.setTax(sum(obj.getDoubleValue("totalArrTax"),obj.getDoubleValue("totalServiceFee")/2,obj.getDoubleValue("totalArrSurcharge")));//返回时，服务费算了往返的，所以此次除2
 				
 				//两个tr，包含两上行程列表
 				String[] tr = StringUtils.substringBetween(table, "<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">", "</tbody>").split("<tr class=\"inform hidden\" rendered=\"currentFlight.flightSegments\">");
@@ -344,7 +353,8 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				flightDetail.setArrcity(obj.getString("arrPort"));
 				flightDetail.setDepcity(obj.getString("depPort"));
 				flightDetail.setPrice(obj.getDoubleValue("totalDepAdultFare"));
-				flightDetail.setTax(obj.getDoubleValue("totalDepTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
+				//flightDetail.setTax(obj.getDoubleValue("totalDepTax")+obj.getDoubleValue("totalServiceFee")+obj.getDoubleValue("totalDepSurcharge"));
+				flightDetail.setTax(sum(obj.getDoubleValue("totalDepTax"),obj.getDoubleValue("totalServiceFee"),obj.getDoubleValue("totalDepSurcharge")));
 				//截取时间10:21-16:15
 				seg.setDeptime(StringUtils.substringAfter(obj.getString("schDepDate"), "-").replace(" ", ""));
 				seg.setDepairport(obj.getString("depPort"));
@@ -362,12 +372,13 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 				flightDetail.setArrcity(obj.getString("retArrPort"));
 				flightDetail.setDepcity(obj.getString("retDepPort"));
 				flightDetail.setPrice(obj.getDoubleValue("totalArrAdultFare"));
-				flightDetail.setTax(obj.getDoubleValue("totalArrTax")+obj.getDoubleValue("totalServiceFee")/2+obj.getDoubleValue("totalArrSurcharge"));
+				//flightDetail.setTax(obj.getDoubleValue("totalArrTax")+obj.getDoubleValue("totalServiceFee")/2+obj.getDoubleValue("totalArrSurcharge"));
+				flightDetail.setTax(sum(obj.getDoubleValue("totalArrTax"),obj.getDoubleValue("totalServiceFee")/2,obj.getDoubleValue("totalArrSurcharge")));
 				//截取时间10:21-16:15
 				seg.setDeptime(StringUtils.substringAfter(obj.getString("retSchDepDate"), "-").replace(" ", ""));
 				seg.setDepairport(obj.getString("retDepPort"));
 				seg.setArrtime(StringUtils.substringAfter(obj.getString("retSchArrDate"), "-").replace(" ", ""));
-				seg.setArrairport(obj.getString("retDepPort"));
+				seg.setArrairport(obj.getString("retArrPort"));
 				seg.setDepDate(depDate);
 				String[] arrDates = obj.getString("retSchArrDate").replaceAll(" ", "").split("-")[0].split("/");
 				String arrDate = arrDates[2]+"-"+arrDates[1]+"-"+arrDates[0];
@@ -385,5 +396,18 @@ public class Wrapper_gjsairxq001 implements QunarCrawler {
 		}		
 		return flight;
 	}
-
+	
+	//计算相加，避免丢失精度
+	private double sum(double d1,double d2){
+		BigDecimal bd1 = new BigDecimal(Double.toString(d1));
+        BigDecimal bd2 = new BigDecimal(Double.toString(d2));
+        return bd1.add(bd2).doubleValue(); 
+	}
+	//计算相加，避免丢失精度
+	private double sum(double d1,double d2,double d3){
+		BigDecimal bd1 = new BigDecimal(Double.toString(d1));
+        BigDecimal bd2 = new BigDecimal(Double.toString(d2));
+        BigDecimal bd3 = new BigDecimal(Double.toString(d3));
+        return bd1.add(bd2).add(bd3).doubleValue(); 
+	}
 }
