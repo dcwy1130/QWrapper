@@ -136,8 +136,9 @@ public class Wrapper_gjdairfr001 implements QunarCrawler {
 			post.setRequestBody(names);
 			post.setRequestHeader("Referer", "http://www.ryanair.com/");
 			httpClient.executeMethod(post);
-			cookies = httpClient.getState().getCookies();			
-			return getFlightDetail();
+			cookies = httpClient.getState().getCookies();
+			String html = getFlightDetail();
+			return html;
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -211,8 +212,9 @@ public class Wrapper_gjdairfr001 implements QunarCrawler {
 		HttpClient httpClient = new HttpClient();
 		httpClient.getState().addCookies(cookies);
 		GetMethod get = new GetMethod("https://www.bookryanair.com/SkySales/Search.aspx");
-		httpClient.executeMethod(get);		
-		return get.getResponseBodyAsString();
+		httpClient.executeMethod(get);	
+		String html = get.getResponseBodyAsString();
+		return html;
 	}
 
 	//将获取的json数据解析装载
